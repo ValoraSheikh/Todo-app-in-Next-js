@@ -51,3 +51,32 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session?.user?.id) {
+      return NextResponse.json(
+        {
+          error: "Unauthorized access",
+        },
+        { status: 401 }
+      );
+    }
+
+    await dbConnect();
+
+    const todos = await Todo.find({ userId: session.user.id }); // ✅ for all todos
+
+    return NextResponse.json(todos, { status: 201 });
+  } catch (error) {
+    console.error("Having error in getting todos", error);
+    return NextResponse.json(
+      {
+        error: "Failed while getting todos",
+      },
+      { status: 400 }
+    );
+  }
+}
