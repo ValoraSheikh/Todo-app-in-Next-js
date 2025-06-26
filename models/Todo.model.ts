@@ -15,7 +15,6 @@ const todoSchema = new Schema<ITodo>({
   userId: {
     type: String,
     required: true,
-    unique: true,
   },
   title: {
     type: String,
@@ -30,6 +29,7 @@ const todoSchema = new Schema<ITodo>({
   },
   dueDate: {
     type: Date,
+    default: Date.now,
   },
   priority: {
     type: String,
