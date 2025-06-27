@@ -6,79 +6,63 @@ import { authOptions } from "../../auth/[...nextauth]/options";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } } // ✅ fixed destructure
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { id } = await params;
 
-    if (!session || !session?.user?.id) {
-      return NextResponse.json(
-        {
-          error: "Unauthorized access",
-        },
-        { status: 401 }
-      );
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
 
     await dbConnect();
 
-    const todo = await Todo.findById(params.id);
-
+    const todo = await Todo.findById(id);
     if (!todo) {
       return NextResponse.json({ error: "Todo not found" }, { status: 404 });
     }
 
-    if (todo.userId !== session?.user?.id) {
+    if (todo.userId !== session.user.id) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    await Todo.findByIdAndDelete(params.id);
+    await Todo.findByIdAndDelete(id);
 
-    return NextResponse.json(
-      { message: "Todo deleted successfully" },
-      { status: 200 }
-    );
+    return NextResponse.json({ message: "Todo deleted successfully" }, { status: 200 });
   } catch (error) {
     console.error("DELETE error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete todo" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to delete todo" }, { status: 500 });
   }
 }
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } } // ✅ FIXED HERE
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { id } = await params; // ✅ safe to use now
 
-    if (!session || !session?.user?.id) {
-      return NextResponse.json(
-        {
-          error: "Unauthorized access",
-        },
-        { status: 401 }
-      );
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
 
     await dbConnect();
 
-    const todo = await Todo.findById(params.id);
-
+    const todo = await Todo.findById(id);
     if (!todo) {
       return NextResponse.json({ error: "Todo not found" }, { status: 404 });
     }
 
-    if (todo.userId !== session?.user?.id) {
+    if (todo.userId !== session.user.id) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
     const body = await request.json();
 
     const updatedTodo = await Todo.findByIdAndUpdate(
-      params.id,
+      id,
       { $set: body },
       { new: true }
     );
@@ -86,9 +70,6 @@ export async function PATCH(
     return NextResponse.json(updatedTodo, { status: 200 });
   } catch (error) {
     console.error("PATCH error:", error);
-    return NextResponse.json(
-      { error: "Failed to update todo" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to update todo" }, { status: 500 });
   }
 }

@@ -26,7 +26,7 @@ export default function SignInPage() {
       setMessage("❌ " + res.error);
     } else {
       setMessage("✅ Logged in successfully!");
-      router.push("/"); // Change to your desired protected route
+      router.push("/todos"); // Change to your desired protected route
     }
 
     setLoading(false);
