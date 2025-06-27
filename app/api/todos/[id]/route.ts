@@ -4,7 +4,10 @@ import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "../../auth/[...nextauth]/options";
 
-export async function POST(request: NextRequest) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -17,42 +20,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description, dueDate, priority, tags } =
-      await request.json();
-
-    if (!title) {
-      return NextResponse.json(
-        {
-          error: "Title is required",
-        },
-        { status: 400 }
-      );
-    }
-
     await dbConnect();
 
-    const todo = await Todo.create({
-      title,
-      userId: session.user.id,
-      description,
-      dueDate,
-      priority,
-      tags,
-    });
+    const todo = await Todo.findById(params.id);
 
-    return NextResponse.json(todo, { status: 201 });
-  } catch (error) {
-    console.error("Having error in creating todo", error);
+    if (!todo) {
+      return NextResponse.json({ error: "Todo not found" }, { status: 404 });
+    }
+
+    if (todo.userId !== session?.user?.id) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    await Todo.findByIdAndDelete(params.id);
+
     return NextResponse.json(
-      {
-        error: "Failed while creating todo",
-      },
-      { status: 400 }
+      { message: "Todo deleted successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("DELETE error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete todo" },
+      { status: 500 }
     );
   }
 }
 
-export async function GET() {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -64,19 +62,33 @@ export async function GET() {
         { status: 401 }
       );
     }
-    
+
     await dbConnect();
 
-    const todo = await Todo.findById({userId: session.user.id})
+    const todo = await Todo.findById(params.id);
 
-    return NextResponse.json(todo, { status: 201 });
+    if (!todo) {
+      return NextResponse.json({ error: "Todo not found" }, { status: 404 });
+    }
+
+    if (todo.userId !== session?.user?.id) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    const body = await request.json();
+
+    const updatedTodo = await Todo.findByIdAndUpdate(
+      params.id,
+      { $set: body },
+      { new: true }
+    );
+
+    return NextResponse.json(updatedTodo, { status: 200 });
   } catch (error) {
-    console.error("Having error in getting todos", error);
+    console.error("PATCH error:", error);
     return NextResponse.json(
-      {
-        error: "Failed while getting todos",
-      },
-      { status: 400 }
+      { error: "Failed to update todo" },
+      { status: 500 }
     );
   }
 }
